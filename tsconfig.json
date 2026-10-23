@@ -23,10 +23,8 @@
   },
   "include": [
     "src",
-    "pages",
-    "components",
-    "helpers",
-    "endpoints",
+    "pages/_index.tsx",
+    "pages/practicar.tsx",
     "server",
     "vite.config.ts"
   ]
