@@ -6,3 +6,9 @@
 
 /* Logo PNG responsivo */
 .brand{min-width:0;flex-shrink:0}.header{gap:18px}.headerRight{flex-wrap:wrap;justify-content:flex-end}@media(max-width:640px){.header{gap:10px}}
+
+/* Enlace al portal principal de InsurTalent */
+.portalLink{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;text-decoration:none;font:700 12px 'DM Sans',sans-serif;padding:10px 13px;border-radius:999px;background:#078b70;color:#fff;border:1px solid #078b70;transition:background .15s ease}
+.portalLink:hover{background:#086f5c;color:#fff}
+:global(html[data-vb-theme="dark"]) .portalLink{background:#118b76;border-color:#24b99b;color:#fff}
+@media(max-width:520px){.portalLink{font-size:11px;padding:9px 10px}}
