@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+:root {
+  /* Overlay layers */
+  --z-overlay: 400;
+  --z-spotlight: 1000; /* Tutorial spotlights/guided help */
+  /* System layers */
+  --z-critical: 2000; /* Critical system notifications */
+  /* spacing */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+  --spacing-20: 5rem;
+}
+:root {
+ --background:#0a0c1b;--foreground:#f2f3ff;--surface:#12162a;--surface-foreground:#f2f3ff;--sidebar:#111428;--sidebar-foreground:#f2f3ff;--card:#171b32;--card-foreground:#f2f3ff;--popup:#202540;--popup-foreground:#f2f3ff;--primary:#8276ff;--primary-foreground:#ffffff;--secondary:#292e4b;--secondary-foreground:#ecedff;--accent:#a7a0ff;--accent-foreground:#0a0c1b;--muted:#252942;--muted-foreground:#a5abc8;--success:#5bdbac;--success-foreground:#061b13;--error:#fc8899;--error-foreground:#290a10;--warning:#f7c978;--warning-foreground:#292009;--info:#8276ff;--info-foreground:#ffffff;--info-hover:#968cff;--info-active:#6153e7;--border:#333856;--font-family-base:'DM Sans',sans-serif;--font-family-display:'Bricolage Grotesque',sans-serif;--font-family-monospace:monospace;--font-family-cursive:cursive;--shadow:0 4px 20px #0003;--shadow-md:0 12px 35px #0005;--shadow-lg:0 20px 60px #0007;--shadow-focus:0 0 0 3px #8276ff55;--radius-sm:8px;--radius:14px;--radius-md:18px;--radius-lg:26px;--radius-full:999px;--animation-duration-fast:130ms;--animation-duration-normal:250ms;--animation-duration-slow:500ms;--chart-color-1:#8276ff;--chart-color-2:#5bdbac;--chart-color-3:#f7c978;--chart-color-4:#fc8899;--chart-color-5:#74bbf5;
+}
+:root,.dark{--background:#f7f8f6;--foreground:#14234c;--surface:#ffffff;--surface-foreground:#14234c;--sidebar:#ffffff;--sidebar-foreground:#14234c;--card:#ffffff;--card-foreground:#14234c;--popup:#ffffff;--popup-foreground:#14234c;--primary:#078b70;--primary-foreground:#ffffff;--secondary:#edf5f1;--secondary-foreground:#14234c;--accent:#0cc3c4;--accent-foreground:#14234c;--muted:#f0f3f4;--muted-foreground:#66728f;--success:#0b9676;--success-foreground:#fff;--error:#bf334f;--error-foreground:#fff;--info:#078b70;--info-foreground:#fff;--border:#e2e6e9;--shadow:0 5px 22px #14234c10;--shadow-md:0 14px 35px #14234c15;--shadow-lg:0 20px 60px #14234c17;--shadow-focus:0 0 0 3px #0aa58433}body{background:#f7f8f6;color:#14234c}
+.dark {--background:#f7f8f6;--foreground:#14234c;--surface:#ffffff;--surface-foreground:#14234c;--card:#ffffff;--card-foreground:#14234c;--primary:#078b70;--primary-foreground:#fff;--secondary:#edf5f1;--secondary-foreground:#14234c;--muted:#f0f3f4;--muted-foreground:#66728f;--border:#e2e6e9;}
+html[data-vb-theme="dark"],html[data-vb-theme="dark"] body{color-scheme:dark;background:#0c1522;color:#eaf3f6}html[data-vb-theme="dark"]{--background:#0c1522;--foreground:#eaf3f6;--surface:#142332;--surface-foreground:#eaf3f6;--sidebar:#152637;--sidebar-foreground:#eaf3f6;--card:#162737;--card-foreground:#eaf3f6;--popup:#1d3041;--popup-foreground:#eaf3f6;--primary:#0dac8a;--primary-foreground:#fff;--secondary:#243b43;--secondary-foreground:#eaf3f6;--accent:#50d6c9;--accent-foreground:#0c1522;--muted:#233745;--muted-foreground:#a4b8c5;--border:#344956;--shadow:0 12px 35px #0005}html[data-vb-theme="dark"] input,html[data-vb-theme="dark"] textarea{color:#eaf3f6;color-scheme:dark}html[data-vb-theme="dark"] [role="listbox"]{background:#1d3041;color:#eaf3f6}
+
