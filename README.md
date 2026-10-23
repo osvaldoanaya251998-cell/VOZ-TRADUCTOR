@@ -50,3 +50,7 @@ Sirve la web en el puerto indicado por `PORT` (predeterminado 3001). Despliega f
 
 ## Origen
 Migración independiente del código de VozBridge desarrollado previamente en Floot. Repositorio TALENT no se modifica.
+
+## Publicar en un hosting Node.js
+
+Usa un servicio con soporte de procesos Node.js (por ejemplo, Render, Railway o un VPS). Configura como comando de construcción `npm install && npm run build` y como comando de inicio `npm start`. Añade la variable `OPENAI_API_KEY` en los secretos del hosting y establece `PORT` si el proveedor lo exige. El frontend y las APIs se sirven desde el mismo dominio. No funciona como sitio estático puro en GitHub Pages.
