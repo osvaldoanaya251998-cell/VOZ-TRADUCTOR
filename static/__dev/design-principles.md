@@ -1,0 +1,1 @@
+VozBridge uses a precision audio-console aesthetic: midnight ink, icy pale lavender, and one vivid indigo signal. Dark-only. Generous spacing around the central listening control; compact structured transcription cards. Crisp Bricolage Grotesque headlines and DM Sans controls, soft corners, layered translucent surfaces, subtle light borders and a singular saturated indigo accent.
