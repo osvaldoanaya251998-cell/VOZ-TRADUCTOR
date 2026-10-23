@@ -54,3 +54,19 @@ Migración independiente del código de VozBridge desarrollado previamente en Fl
 ## Publicar en un hosting Node.js
 
 Usa un servicio con soporte de procesos Node.js (por ejemplo, Render, Railway o un VPS). Configura como comando de construcción `npm install && npm run build` y como comando de inicio `npm start`. Añade la variable `OPENAI_API_KEY` en los secretos del hosting y establece `PORT` si el proveedor lo exige. El frontend y las APIs se sirven desde el mismo dominio. No funciona como sitio estático puro en GitHub Pages.
+
+## Desplegar con Cloudflare Workers
+
+El archivo `cloudflare/worker.js` implementa la API sin Express para Cloudflare Workers; la web React se publica como Static Assets.
+
+En tu cuenta de Cloudflare: **Workers & Pages → Create application → Import a repository (GitHub)** y selecciona `VOZ-TRADUCTOR`. Nombre del Worker: `voz-traductor`. En los ajustes del build define:
+
+- Build command: `npm install && npm run build`
+- Deploy command: `npx wrangler deploy`
+- Root directory: `/`
+
+En **Worker → Settings → Variables and Secrets**, crea un **Secret** llamado `OPENAI_API_KEY`; pega allí la clave privada, nunca en GitHub. Opcionalmente añade `OPENAI_MODEL` con `gpt-4.1-mini`. Vuelve a desplegar para activar las variables.
+
+Se publicará bajo tu subdominio `*.workers.dev` y después podrás conectar un dominio propio desde el panel.
+
+**Aviso de seguridad:** no hay autenticación y el Worker todavía no incorpora una cuota de uso persistente por usuario. Antes de hacerlo público a escala, protege los endpoints de IA con Cloudflare Turnstile, Rate Limiting y/o autenticación para evitar gastos no autorizados.
