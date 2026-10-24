@@ -5,6 +5,6 @@ export type OutputType={reply:string;correction:string;explanation:string;praise
 export async function postPractice(input:z.infer<typeof schema>):Promise<OutputType>{
  const response=await fetch("/_api/practice",{method:"POST",headers:{"Content-Type":"application/json"},body:superjson.stringify(schema.parse(input))});
  const result=superjson.parse<any>(await response.text());
- if(!response.ok)throw new Error(result.error||"No se pudo contactar al profesor");
+ if(!response.ok)throw new Error(result?.error||result?.json?.error||"No se pudo contactar al profesor");
  return result as OutputType;
 }
