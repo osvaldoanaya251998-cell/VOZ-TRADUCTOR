@@ -1,72 +1,47 @@
-# VOZ-TRADUCTOR — VozBridge independiente
+# VOZ-TRADUCTOR — VozBridge Basic (Cloudflare AI)
 
-Aplicación React + Vite + servidor Node.js/Express. **No usa Floot para ejecutar la app**.
+Proyecto independiente de Floot y de **TALENT**. Conserva la interfaz React, el logotipo InsurTalent, el modo claro/oscuro y los enlaces al portal.
 
-## Requisitos
-- Node.js 20 o superior
-- Clave propia de OpenAI API (el uso de IA se factura según la plataforma)
+## Versión gratuita para Cloudflare Workers
 
-## Instalar
+Esta rama sustituye las llamadas del Worker a la API de pago de OpenAI por modelos alojados en **Cloudflare Workers AI**, usando la asignación gratuita diaria de Cloudflare. **No necesita OPENAI_API_KEY**. La cuota gratuita no es ilimitada: al agotarse, el servidor devuelve un aviso y habrá que esperar al siguiente reinicio diario.
+
+- Traducción de texto: `@cf/meta/m2m100-1.2b`
+- Interpretación de voz: `@cf/openai/whisper-large-v3-turbo` alojado en Cloudflare, más un modelo de idioma y traducción.
+- Chat de práctica: `@cf/google/gemma-4-26b-a4b-it`.
+- Lectura de la traducción: síntesis de voz del navegador.
+- Fotografías: **no disponible todavía en Basic** (el endpoint avisa explícitamente).
+- Reconocimiento de voz del modo de escucha: API del navegador; depende de compatibilidad y permisos.
+
+**Nota:** aunque uno de los modelos de transcripción tenga `openai` en su identificador, se ejecuta mediante Cloudflare, sin conexión a la facturación de la API de OpenAI.
+
+## Despliegue con Cloudflare
+
+1. Crea/selecciona un Worker vinculado al repositorio `VOZ-TRADUCTOR`.
+2. Build command: `npm install && npm run build`
+3. Deploy command: `npx wrangler deploy`
+4. Verifica que `wrangler.jsonc` incorpora `"ai": { "binding": "AI" }`.
+5. Prueba la rama en una vista previa antes de fusionarla con `main`.
+6. Después del despliegue, prueba texto español → inglés, inglés → español, interpretación de una frase corta y chat.
+
+`OPENAI_API_KEY` no se usa en el Worker de Cloudflare. Puedes retirar el secreto antiguo cuando compruebes la migración.
+
+## Desarrollo local y servidor legado
+
+El repositorio también incluye un servidor Express de la versión anterior. Los comandos `npm run dev` y `npm start` siguen usando ese servidor legado y **todavía pueden requerir OpenAI**. Para probar la edición gratuita del Worker utiliza Wrangler, con acceso a una cuenta Cloudflare y al binding AI.
+
 ```bash
-git clone https://github.com/osvaldoanaya251998-cell/VOZ-TRADUCTOR.git
-cd VOZ-TRADUCTOR
 npm install
-cp .env.example .env
-```
-Edita `.env` y configura `OPENAI_API_KEY`. **Nunca subas esa clave a GitHub.**
-
-## Desarrollo
-```bash
-npm run dev
-```
-Abre http://localhost:5173. El frontend utiliza Vite y las solicitudes `/_api/*` van al servidor local en el puerto 3001.
-
-## Producción
-```bash
 npm run build
-npm start
+npx wrangler dev
 ```
-Sirve la web en el puerto indicado por `PORT` (predeterminado 3001). Despliega frontend y backend juntos en un hosting Node.js; GitHub Pages por sí solo no ejecuta el backend.
 
-## Características
-- Interpretación por voz español ↔ otro idioma, por intervalos con detección de pausa.
-- Chat conversacional y traducción bajo petición.
-- Fotografías: traducción de texto y ayuda con ejercicios.
-- Voz mediante síntesis del navegador.
-- Branding InsurTalent y modo claro/nocturno.
+La web usa React/Vite y el Worker está en `cloudflare/worker.js`.
 
-## Modelos utilizados
-- Chat y visión: configurable con `OPENAI_MODEL` (por defecto `gpt-4.1-mini`).
-- Transcripción: `whisper-1`.
-- Requiere conexión a Internet.
+## Límites y seguridad
 
-## Seguridad y limitaciones
-- El código contiene una limitación básica de solicitudes por IP, pero **no tiene autenticación**; implementa controles adicionales antes de abrir la app al público para proteger gastos de API.
-- No guarda conversaciones en base de datos.
-- El reconocimiento/transcripción no garantiza traducción simultánea; se procesa por turnos.
-- La calidad de voces depende del navegador.
-- **No uses la clave API en variables `VITE_*`** ni en componentes React.
-- Revisa que los PNG de `public/_cdn/static` estén incluidos; forman parte de la imagen de marca.
-
-## Origen
-Migración independiente del código de VozBridge desarrollado previamente en Floot. Repositorio TALENT no se modifica.
-
-## Publicar en un hosting Node.js
-
-Usa un servicio con soporte de procesos Node.js (por ejemplo, Render, Railway o un VPS). Configura como comando de construcción `npm install && npm run build` y como comando de inicio `npm start`. Añade la variable `OPENAI_API_KEY` en los secretos del hosting y establece `PORT` si el proveedor lo exige. El frontend y las APIs se sirven desde el mismo dominio. No funciona como sitio estático puro en GitHub Pages.
-
-## Desplegar con Cloudflare Workers
-
-El archivo `cloudflare/worker.js` implementa la API sin Express para Cloudflare Workers; la web React se publica como Static Assets.
-
-En tu cuenta de Cloudflare: **Workers & Pages → Create application → Import a repository (GitHub)** y selecciona `VOZ-TRADUCTOR`. Nombre del Worker: `voz-traductor`. En los ajustes del build define:
-
-- Build command: `npm install && npm run build`
-- Deploy command: `npx wrangler deploy`
-- Root directory: `/`
-
-En **Worker → Settings → Variables and Secrets**, crea un **Secret** llamado `OPENAI_API_KEY`; pega allí la clave privada, nunca en GitHub. Opcionalmente añade `OPENAI_MODEL` con `gpt-4.1-mini`. Vuelve a desplegar para activar las variables.
-
-Se publicará bajo tu subdominio `*.workers.dev` y después podrás conectar un dominio propio desde el panel.
-
-**Aviso de seguridad:** no hay autenticación y el Worker todavía no incorpora una cuota de uso persistente por usuario. Antes de hacerlo público a escala, protege los endpoints de IA con Cloudflare Turnstile, Rate Limiting y/o autenticación para evitar gastos no autorizados.
+- Cloudflare Workers AI tiene una cuota gratuita diaria, no un número fijo de traducciones.
+- No existe autenticación ni limitación de tasa persistente por visitante en esta rama. **No se recomienda abrirla a tráfico masivo** antes de configurar Rate Limiting/Turnstile o un límite de consumo.
+- La transcripción se procesa por intervalos; no es interpretación simultánea perfecta.
+- Los resultados de idiomas y el reconocimiento de voz deben verificarse con dispositivos reales.
+- Nunca subas secretos al repositorio ni modifiques la aplicación TALENT como parte de esta migración.
