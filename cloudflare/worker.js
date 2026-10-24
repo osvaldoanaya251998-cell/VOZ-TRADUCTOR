@@ -2,8 +2,22 @@ const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers
 const languages={"es-MX":"español","en-US":"inglés","fr-FR":"francés","de-DE":"alemán","it-IT":"italiano","pt-BR":"portugués","ja-JP":"japonés"};
 async function chat(env,messages,json=false,max=800){
  const response=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{Authorization:"Bearer "+env.OPENAI_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({model:env.OPENAI_MODEL||"gpt-4.1-mini",messages,max_completion_tokens:max,...(json?{response_format:{type:"json_object"}}:{})})});
- if(!response.ok)throw Error("Proveedor IA: HTTP "+response.status);
+ if(!response.ok)throw await upstreamError("chat",response);
  const data=await response.json();return String(data.choices?.[0]?.message?.content||"").trim();
+}
+async function upstreamError(stage,response){
+ let code="unknown";
+ try{const body=await response.json();code=String(body?.error?.code||body?.error?.type||"unknown").slice(0,80);}catch{}
+ const error=new Error("OpenAI "+stage+" HTTP "+response.status+" ("+code+")");
+ error.stage=stage;error.httpStatus=response.status;error.code=code;
+ return error;
+}
+function safeError(error){
+ if(error?.httpStatus===401)return "La clave OPENAI_API_KEY fue rechazada (401). Revisa el secreto en Cloudflare.";
+ if(error?.httpStatus===429)return "OpenAI devolvió 429. Revisa créditos, límites o facturación de tu cuenta API.";
+ if(error?.httpStatus===403)return "OpenAI devolvió 403. Tu proyecto API no tiene permiso para esta operación.";
+ if(error?.httpStatus===400)return "OpenAI devolvió 400 en "+(error.stage==="transcription"?"transcripción de audio":"respuesta de IA")+". Verifica el formato del audio o el modelo configurado.";
+ return "La IA no pudo responder. Revisa el registro de Cloudflare.";
 }
 function unpack(body){return body&&typeof body==="object"&&"json" in body?body.json:body}
 const lang=x=>languages[x]||x||"idioma no especificado";
@@ -45,7 +59,7 @@ export default {async fetch(request,env){
    const ext=kind.includes("mp4")?"mp4":kind.includes("wav")?"wav":"webm";
    const form=new FormData();form.append("model","whisper-1");form.append("file",new Blob([bytes],{type:kind}),"speech."+ext);
    const t=await fetch("https://api.openai.com/v1/audio/transcriptions",{method:"POST",headers:{Authorization:"Bearer "+env.OPENAI_API_KEY},body:form});
-   if(!t.ok)throw Error("Transcripción: HTTP "+t.status);
+   if(!t.ok)throw await upstreamError("transcription",t);
    const text=String((await t.json()).text||"").trim();if(!text)return reply({empty:true});
    const instruction="Interpreta conversación bidireccional. Los idiomas son "+lang(mine)+" código "+mine+" y "+lang(theirs)+" código "+theirs+". Detecta cuál está hablando y traduce al otro. Responde JSON con source (código exacto) y translation. Conserva nombres propios.";
    const result=JSON.parse(await chat(env,[{role:"system",content:instruction},{role:"user",content:text}],true,480));
@@ -53,5 +67,5 @@ export default {async fetch(request,env){
    return reply({text,source,target:source===mine?theirs:mine,translation:String(result.translation||"")});
   }
   return reply({error:"Ruta no encontrada"},404);
- }catch(e){console.error(e);return reply(path==="/_api/translate"||path==="/_api/practice"?{json:{error:"La IA no pudo responder. Revisa créditos, modelo y configuración."}}:{error:"La IA no pudo responder. Revisa créditos, modelo y configuración."},502);}
+  }catch(e){console.error("vozbridge_ai_error",JSON.stringify({stage:e?.stage||"worker",httpStatus:e?.httpStatus||null,code:e?.code||null,message:e instanceof Error?e.message:"unknown"}));const message=safeError(e);return reply(path==="/_api/translate"||path==="/_api/practice"?{json:{error:message}}:{error:message},502);}
 }};
