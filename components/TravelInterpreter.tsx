@@ -2,35 +2,53 @@ import React,{useEffect,useRef,useState} from "react";
 import {Mic,MicOff,Volume2,ArrowLeftRight,Globe2,Trash2} from "lucide-react";
 import {Button} from "./Button";
 import {Select,SelectTrigger,SelectValue,SelectContent,SelectItem} from "./Select";
+import {translateInBrowser} from "../helpers/browserTranslation";
 import styles from "./TravelInterpreter.module.css";
 const languages=[["es-MX","Español"],["ko-KR","Coreano"],["en-US","Inglés"],["ja-JP","Japonés"],["fr-FR","Francés"],["de-DE","Alemán"],["it-IT","Italiano"],["pt-BR","Portugués"],["zh-CN","Chino"],["ar-SA","Árabe"],["hi-IN","Hindi"],["ru-RU","Ruso"]];
-type Line={id:number;side:"me"|"other";original:string;translation:string;target:string};
+type Side="me"|"other";
+type Line={id:number;side:Side;original:string;translation:string;target:string};
 const name=(code:string)=>languages.find(l=>l[0]===code)?.[1]||code;
 export default function TravelInterpreter(){
- const [mine,setMine]=useState("es-MX"),[theirs,setTheirs]=useState("ko-KR"),[active,setActive]=useState(false),[busy,setBusy]=useState(false),[lines,setLines]=useState<Line[]>([]),[error,setError]=useState(""),[autoSpeak,setAutoSpeak]=useState(true),[status,setStatus]=useState("Listo para escuchar automáticamente");
- const recorder=useRef<MediaRecorder|null>(null),stream=useRef<MediaStream|null>(null),running=useRef(false),busyRef=useRef(false),session=useRef(0),count=useRef(0),bottom=useRef<HTMLDivElement>(null),audioPlaying=useRef(false),mimeRef=useRef("audio/webm"),next=useRef<()=>void>(()=>{});
+ const [mine,setMine]=useState("es-MX"),[theirs,setTheirs]=useState("en-US"),[active,setActive]=useState<Side|null>(null),[busy,setBusy]=useState(false),[lines,setLines]=useState<Line[]>([]),[error,setError]=useState(""),[autoSpeak,setAutoSpeak]=useState(true),[status,setStatus]=useState("Elige quién habla y pulsa su micrófono.");
+ const recognition=useRef<any>(null),session=useRef(0),count=useRef(0),bottom=useRef<HTMLDivElement>(null);
  useEffect(()=>{bottom.current?.scrollIntoView({behavior:"smooth",block:"nearest"});},[lines]);
- const stop=()=>{running.current=false;session.current++;setActive(false);setBusy(false);busyRef.current=false;setStatus("Escucha detenida");try{recorder.current?.stop();}catch{}recorder.current=null;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;window.speechSynthesis?.cancel();audioPlaying.current=false;};
- useEffect(()=>()=>{running.current=false;session.current++;try{recorder.current?.stop();}catch{}stream.current?.getTracks().forEach(t=>t.stop());window.speechSynthesis?.cancel();},[]);
- const speak=(value:string,lang:string,onDone?:()=>void)=>{if(!("speechSynthesis" in window)){onDone?.();return;}window.speechSynthesis.cancel();audioPlaying.current=true;const u=new SpeechSynthesisUtterance(value);u.lang=lang;u.rate=.92;const voices=window.speechSynthesis.getVoices();u.voice=voices.find(v=>v.lang.toLowerCase()===lang.toLowerCase())||voices.find(v=>v.lang.startsWith(lang.split("-")[0]))||null;u.onend=()=>{audioPlaying.current=false;onDone?.();};u.onerror=()=>{audioPlaying.current=false;onDone?.();};window.speechSynthesis.speak(u);};
- const analyze=async(blob:Blob,turn:number)=>{if(!running.current||session.current!==turn)return;if(blob.size<1500){next.current();return;}busyRef.current=true;setBusy(true);setStatus("Reconociendo idioma y traduciendo…");
- try{const data=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("No se pudo leer audio"));reader.readAsDataURL(blob);});if(!running.current||session.current!==turn)return;
- const response=await fetch("/_api/interpret",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({audio:data,mime:blob.type||mimeRef.current,mine,theirs})});
- const result=await response.json();if(!response.ok)throw new Error(result.error||"Error al traducir");
- if(result.text&&result.translation){setLines(v=>[...v,{id:++count.current,side:result.source===theirs?"other":"me",original:result.text,translation:result.translation,target:result.target}]);if(autoSpeak){setStatus("Reproduciendo traducción…");speak(result.translation,result.target,()=>{if(running.current&&session.current===turn)next.current();});return;}}
- }catch(e:any){if(running.current&&session.current===turn)setError(e.message||"Error de reconocimiento");}
- finally{busyRef.current=false;setBusy(false);}
- if(running.current&&session.current===turn)next.current();
+ const stop=()=>{session.current++;try{recognition.current?.abort?.();}catch{}recognition.current=null;setActive(null);setBusy(false);setStatus("Escucha detenida");};
+ useEffect(()=>()=>{session.current++;recognition.current?.abort?.();window.speechSynthesis?.cancel();},[]);
+ const speak=(value:string,language:string)=>{if(!("speechSynthesis" in window))return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(value);u.lang=language;u.rate=.93;window.speechSynthesis.speak(u);};
+ const listen=(side:Side)=>{
+  if(active){stop();return;}
+  setError("");
+  const Speech=(window as any).SpeechRecognition||(window as any).webkitSpeechRecognition;
+  if(!Speech){setError("El reconocimiento de voz no está disponible. Usa Chrome de escritorio actualizado.");return;}
+  const from=side==="me"?mine:theirs, to=side==="me"?theirs:mine;
+  try{
+   const current=++session.current;
+   const r=new Speech();recognition.current=r;r.lang=from;r.continuous=false;r.interimResults=false;
+   r.onresult=async(event:any)=>{
+    const transcript=String(event.results?.[0]?.[0]?.transcript||"").trim();
+    if(!transcript||current!==session.current)return;
+    setActive(null);setBusy(true);setStatus("Traduciendo en el navegador…");
+    try{
+     const translation=await translateInBrowser(transcript,from,to);
+     if(current!==session.current)return;
+     setLines(v=>[...v,{id:++count.current,side,original:transcript,translation,target:to}]);
+     setStatus("Traducción lista");if(autoSpeak)speak(translation,to);
+    }catch(e:any){if(current===session.current)setError(e.message||"No se pudo traducir.");}
+    finally{if(current===session.current)setBusy(false);}
+   };
+   r.onerror=(event:any)=>{if(current!==session.current)return;setActive(null);if(event.error!=="no-speech"&&event.error!=="aborted")setError(event.error==="not-allowed"?"Permite el acceso al micrófono.":"No se pudo reconocer tu voz.");};
+   r.onend=()=>{if(current===session.current)setActive(null);};
+   r.start();setActive(side);setStatus("Escuchando "+name(from)+"…");
+  }catch{setActive(null);setError("No se pudo abrir el micrófono.");}
  };
- next.current=()=>{if(!running.current||!stream.current||audioPlaying.current)return;try{const mime=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?"audio/webm;codecs=opus":MediaRecorder.isTypeSupported("audio/mp4")?"audio/mp4":"";const r=new MediaRecorder(stream.current,mime?{mimeType:mime}:undefined);mimeRef.current=r.mimeType;recorder.current=r;const parts:Blob[]=[];const turn=session.current;r.ondataavailable=e=>{if(e.data.size)parts.push(e.data);};r.onstop=()=>{if(!running.current||turn!==session.current)return;analyze(new Blob(parts,{type:r.mimeType||"audio/webm"}),turn);};r.start();setStatus("Escuchando "+name(mine)+" y "+name(theirs)+"…");const started=Date.now();let lastSpeech=started,heardSpeech=false;const context=new AudioContext();const node=context.createMediaStreamSource(stream.current);const analyser=context.createAnalyser();analyser.fftSize=1024;node.connect(analyser);const samples=new Uint8Array(analyser.fftSize);const detector=setInterval(()=>{if(r.state!=="recording"||!running.current||session.current!==turn){clearInterval(detector);context.close();return;}analyser.getByteTimeDomainData(samples);let energy=0;for(const sample of samples){const amplitude=(sample-128)/128;energy+=amplitude*amplitude;}const rms=Math.sqrt(energy/samples.length);const now=Date.now();if(rms>.022){heardSpeech=true;lastSpeech=now;}const silenceDone=heardSpeech&&now-lastSpeech>650&&now-started>850;const noSpeech=!heardSpeech&&now-started>1800;const maxDuration=now-started>6200;if(silenceDone||noSpeech||maxDuration){clearInterval(detector);context.close();if(r.state==="recording")r.stop();}},110);}catch{setError("Tu navegador no admite grabación de audio.");stop();}};
- const start=async()=>{if(running.current){stop();return;}setError("");try{if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined")throw new Error("El navegador no permite grabar audio. Usa Chrome o Edge con HTTPS.");const media=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});stream.current=media;running.current=true;setActive(true);next.current();}catch(e:any){setError(e.message||"Autoriza el micrófono para comenzar.");stop();}};
  const change=(field:"mine"|"theirs",value:string)=>{stop();if(field==="mine")setMine(value);else setTheirs(value);};
- return <div className={styles.wrapper}><div className={styles.title}><span className={styles.eyebrow}><Globe2 size={15}/> INTÉRPRETE AUTOMÁTICO PARA VIAJES</span><p>Traducción automática en ambos sentidos, con un solo micrófono.</p></div>
+ return <div className={styles.wrapper}>
+ <div className={styles.title}><span className={styles.eyebrow}><Globe2 size={15}/> INTÉRPRETE BÁSICO SIN API DE PAGO</span><p>Elige quién habla. La traducción se procesa en el navegador compatible.</p></div>
  <div className={styles.pickers}><div><label>TU IDIOMA</label><Select value={mine} onValueChange={v=>change("mine",v)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{languages.map(([code,label])=><SelectItem value={code} key={code}>{label}</SelectItem>)}</SelectContent></Select></div><button className={styles.swap} title="Intercambiar idiomas" onClick={()=>{stop();setMine(theirs);setTheirs(mine);}}><ArrowLeftRight size={20}/></button><div><label>IDIOMA DE LA OTRA PERSONA</label><Select value={theirs} onValueChange={v=>change("theirs",v)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{languages.map(([code,label])=><SelectItem value={code} key={code}>{label}</SelectItem>)}</SelectContent></Select></div></div>
- <div className={styles.autoPanel}><button type="button" className={active?styles.autoActive:styles.autoButton} onClick={start}>{active?<MicOff size={41}/>:<Mic size={43}/>}<strong>{active?"Detener intérprete":"Iniciar traducción automática"}</strong></button><p>{status}</p><span>🎙️ Un solo micrófono · Reconocimiento automático · Traducción en ambos sentidos</span></div>
+ <div className={styles.autoPanel}><button type="button" className={active==="me"?styles.autoActive:styles.autoButton} disabled={busy} onClick={()=>listen("me")}>{active==="me"?<MicOff size={41}/>:<Mic size={43}/>}<strong>{active==="me"?"Detener escucha":"Yo hablo · "+name(mine)}</strong></button><p>{status}</p><Button onClick={()=>listen("other")} disabled={busy} variant="outline">{active==="other"?<MicOff size={18}/>:<Mic size={18}/>} {active==="other"?"Detener escucha":"Habla la otra persona · "+name(theirs)}</Button><span>🎙️ Un turno por persona · Sin llamadas a OpenAI ni Cloudflare AI</span></div>
  {error&&<div className={styles.error}>{error}</div>}
  <label className={styles.autosound}><input type="checkbox" checked={autoSpeak} onChange={e=>setAutoSpeak(e.target.checked)}/><Volume2 size={17}/> Leer las traducciones en voz alta</label>
- <div className={styles.conversationHeader}><div><h3>Conversación en ambos idiomas</h3><p>Sin tocar botones entre cada persona</p></div><Button variant="ghost" size="sm" onClick={()=>setLines([])}><Trash2 size={15}/> Limpiar</Button></div>
+ <div className={styles.conversationHeader}><div><h3>Conversación en ambos idiomas</h3><p>Selecciona el micrófono de cada persona antes de hablar</p></div><Button variant="ghost" size="sm" onClick={()=>setLines([])}><Trash2 size={15}/> Limpiar</Button></div>
  <div className={styles.messages}>{lines.length===0?<div className={styles.empty}><strong>Tu conversación aparecerá aquí</strong><span>Ejemplo: “Disculpe, ¿dónde está la estación de metro?”</span></div>:lines.map(m=><div key={m.id} className={`${styles.message} ${m.side==="me"?styles.myMessage:styles.theirMessage}`}><span>{m.side==="me"?name(mine):name(theirs)} → {name(m.target)}</span><p className={styles.original}>{m.original}</p><p className={styles.translation}>{m.translation}</p><button className={styles.replay} onClick={()=>speak(m.translation,m.target)}><Volume2 size={16}/> Escuchar traducción</button></div>)}<div ref={bottom}/></div>
- <p className={styles.disclaimer}>Versión rápida: intenta detectar una pausa después de hablar, con un límite de grabación de seis segundos. Necesita internet y puede haber una pausa entre respuestas. Evita que las dos personas hablen al mismo tiempo; el reconocimiento de idioma puede equivocarse con frases muy breves.</p></div>;
+ <p className={styles.disclaimer}>Esta versión no identifica automáticamente quién habla. El reconocimiento de voz puede utilizar servicios del propio navegador. La traducción local requiere que el navegador admita Translator API y pueda descargar sus modelos.</p></div>;
 }

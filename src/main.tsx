@@ -1,2 +1,2 @@
-import React from "react";import{createRoot}from"react-dom/client";import{BrowserRouter,Routes,Route}from"react-router-dom";import Home from "../pages/_index";import Practice from "../pages/practicar";import "../base.css";import "./site.css";
-createRoot(document.getElementById("root")!).render(<React.StrictMode><BrowserRouter><Routes><Route path="/" element={<Home/>}/><Route path="/practicar" element={<Practice/>}/></Routes></BrowserRouter></React.StrictMode>);
+import React from "react";import{createRoot}from"react-dom/client";import{HashRouter,Routes,Route}from"react-router-dom";import Home from "../pages/_index";import Practice from "../pages/practicar";import "../base.css";import "./site.css";
+createRoot(document.getElementById("root")!).render(<React.StrictMode><HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/practicar" element={<Practice/>}/></Routes></HashRouter></React.StrictMode>);
