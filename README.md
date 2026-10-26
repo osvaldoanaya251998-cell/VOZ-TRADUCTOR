@@ -44,3 +44,9 @@ El flujo de publicación es **manual**: no se ejecuta al guardar cambios, para e
 - Confirmar que en el navegador no se invoca ningún endpoint `/_api/*`.
 
 No se modifica el repositorio TALENT ni se elimina su enlace existente.
+
+## Compatibilidad móvil (versión experimental)
+
+En Chrome/Edge de escritorio se utiliza primero la API Translator nativa. En teléfonos y otros navegadores se intenta ejecutar un modelo abierto local para **español ↔ inglés** mediante Transformers.js y WebAssembly. Los pesos del modelo se descargan de Hugging Face al dispositivo del visitante la primera vez; la descarga puede consumir cientos de MB, tardar y fallar en teléfonos con poca memoria. No hay garantía universal. Los demás pares de idiomas necesitan soporte del traductor nativo, de lo contrario muestran un aviso.
+
+La traducción de texto no requiere un servidor de IA ni clave API. El reconocimiento de voz del navegador sigue dependiendo del soporte del navegador y puede recurrir a servicios del proveedor para transcribir. Las fotografías y el chat generativo siguen no disponibles.
